@@ -9,15 +9,20 @@ import com.gempukku.swccgo.common.PlayCardZoneOption;
 import com.gempukku.swccgo.common.Rarity;
 import com.gempukku.swccgo.common.Side;
 import com.gempukku.swccgo.common.Title;
+import com.gempukku.swccgo.filters.Filter;
 import com.gempukku.swccgo.filters.Filters;
 import com.gempukku.swccgo.game.PhysicalCard;
+import com.gempukku.swccgo.game.SwccgBuiltInCardBlueprint;
 import com.gempukku.swccgo.game.SwccgGame;
+import com.gempukku.swccgo.game.state.GameState;
 import com.gempukku.swccgo.logic.conditions.AndCondition;
 import com.gempukku.swccgo.logic.conditions.Condition;
 import com.gempukku.swccgo.logic.conditions.OrCondition;
 import com.gempukku.swccgo.logic.conditions.UnlessCondition;
 import com.gempukku.swccgo.logic.modifiers.InitiateForceDrainCostModifier;
 import com.gempukku.swccgo.logic.modifiers.Modifier;
+import com.gempukku.swccgo.logic.modifiers.ModifierType;
+import com.gempukku.swccgo.logic.modifiers.querying.ModifiersQuerying;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -41,11 +46,38 @@ public class Card13_054 extends AbstractDefensiveShield {
         String opponent = game.getOpponent(player);
         Condition battlePlanOnTable = new OnTableCondition(self, Filters.Battle_Plan);
 
+        // Filter for locations where the cost applies (excluding immune locations)
+        Filter playerLocationFilter = Filters.and(
+                Filters.not(Filters.immuneToCardTitle(Title.Battle_Order)),
+                Filters.not(getForceDrainImmuneToBattleOrderFilter(player)));
+
+        Filter opponentLocationFilter = Filters.and(
+                Filters.not(Filters.immuneToCardTitle(Title.Battle_Order)),
+                Filters.not(getForceDrainImmuneToBattleOrderFilter(opponent)));
+
         List<Modifier> modifiers = new LinkedList<Modifier>();
-        modifiers.add(new InitiateForceDrainCostModifier(self, Filters.not(Filters.immuneToCardTitle(Title.Battle_Order)), new UnlessCondition(new OrCondition(battlePlanOnTable,
+        modifiers.add(new InitiateForceDrainCostModifier(self, playerLocationFilter, new UnlessCondition(new OrCondition(battlePlanOnTable,
                 new AndCondition(new OccupiesCondition(player, Filters.battleground_site), new OccupiesCondition(player, Filters.battleground_system)))), 3, player));
-        modifiers.add(new InitiateForceDrainCostModifier(self, Filters.not(Filters.immuneToCardTitle(Title.Battle_Order)), new UnlessCondition(new OrCondition(battlePlanOnTable,
+        modifiers.add(new InitiateForceDrainCostModifier(self, opponentLocationFilter, new UnlessCondition(new OrCondition(battlePlanOnTable,
                 new AndCondition(new OccupiesCondition(opponent, Filters.battleground_site), new OccupiesCondition(opponent, Filters.battleground_system)))), 3, opponent));
         return modifiers;
+    }
+
+    /**
+     * Creates a filter that accepts locations where the specified player has Force drain immunity to Battle Order.
+     * @param playerId the player
+     * @return the filter
+     */
+    private Filter getForceDrainImmuneToBattleOrderFilter(final String playerId) {
+        return new Filter() {
+            @Override
+            public boolean accepts(GameState gameState, ModifiersQuerying modifiersQuerying, PhysicalCard physicalCard) {
+                return modifiersQuerying.isForceDrainImmuneToModifier(gameState, physicalCard, ModifierType.FORCE_DRAIN_IMMUNE_TO_BATTLE_ORDER, playerId);
+            }
+            @Override
+            public boolean accepts(GameState gameState, ModifiersQuerying modifiersQuerying, SwccgBuiltInCardBlueprint builtInCardBlueprint) {
+                return false;
+            }
+        };
     }
 }
