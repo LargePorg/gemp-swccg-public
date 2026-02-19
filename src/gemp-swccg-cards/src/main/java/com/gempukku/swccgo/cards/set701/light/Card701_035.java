@@ -52,9 +52,9 @@ public class Card701_035 extends AbstractSite {
     protected List<Modifier> getGameTextLightSideWhileActiveModifiers(String playerOnLightSideOfLocation, SwccgGame game, PhysicalCard self) {
         List<Modifier> modifiers = new LinkedList<Modifier>();
         // Your Ewoks here
-        final Filter yourEowksHere = Filters.and(Filters.your(playerOnLightSideOfLocation), Filters.Ewok, Filters.here(self));
+        final Filter yourEwoksHere = Filters.and(Filters.your(playerOnLightSideOfLocation), Filters.Ewok, Filters.here(self));
         // are Immune to Attrition
-        modifiers.add(new ImmuneToAttritionModifier(self, yourEowksHere));
+        modifiers.add(new ImmuneToAttritionModifier(self, yourEwoksHere));
         return modifiers;
     }
 }
