@@ -5,13 +5,16 @@ import java.util.LinkedList;
 import java.util.List;
 
 import com.gempukku.swccgo.cards.AbstractAlien;
+import com.gempukku.swccgo.cards.AbstractPermanentDevice;
 import com.gempukku.swccgo.cards.effects.CancelAttackEffect;
+import com.gempukku.swccgo.cards.effects.UsePermanentDeviceEffect;
 import com.gempukku.swccgo.cards.evaluators.MinEvaluator;
 import com.gempukku.swccgo.cards.evaluators.PresentEvaluator;
 import com.gempukku.swccgo.common.ExpansionSet;
 import com.gempukku.swccgo.common.GameTextActionId;
 import com.gempukku.swccgo.common.Icon;
 import com.gempukku.swccgo.common.Keyword;
+import com.gempukku.swccgo.common.Persona;
 import com.gempukku.swccgo.common.PlayCardOptionId;
 import com.gempukku.swccgo.common.Rarity;
 import com.gempukku.swccgo.common.Side;
@@ -45,6 +48,7 @@ public class Card701_043 extends AbstractAlien {
         setGameText("Deploys only on Endor. Your total battle destiny at same site is +1 for each of your Ewok/Rebel pairs present. Permanent device is \u2022Latara's Flute (if an attack was just initiated at same site, may draw destiny; if destiny > 3, attack is canceled and you must hum five notes or lose 1 Force).");
         addIcons(Icon.PERMANENT_DEVICE, Icon.BEEZER_BOWL_2025);
         setSpecies(Species.EWOK);
+        addPersona(Persona.LATARA);
         addKeyword(Keyword.MUSICIAN);
         addKeyword(Keyword.FEMALE);
     }
@@ -65,6 +69,16 @@ public class Card701_043 extends AbstractAlien {
     }
 
     @Override
+    protected AbstractPermanentDevice getGameTextPermanentDevice() {
+        // Permanent device is •Latara's Flute
+        // The flute's ability is a trigger (see getGameTextOptionalAfterTriggers below),
+        // not a top-level action, so getPermanentDeviceTopLevelActions is not overridden.
+        AbstractPermanentDevice permanentDevice = new AbstractPermanentDevice(Persona.LATARAS_FLUTE) {
+        };
+        return permanentDevice;
+    }
+
+    @Override
     protected List<OptionalGameTextTriggerAction> getGameTextOptionalAfterTriggers(final String playerId, final SwccgGame game, EffectResult effectResult, final PhysicalCard self, int gameTextSourceCardId) {
         GameTextActionId gameTextActionId = GameTextActionId.OTHER_CARD_ACTION_1;
 
@@ -74,8 +88,9 @@ public class Card701_043 extends AbstractAlien {
             action.setText("Draw destiny to cancel attack");
             action.setActionMsg("Draw destiny to cancel the attack");
 
-            // Log that player is humming five notes
-            game.getGameState().sendMessage(playerId + " must hum or whistle five notes due to the attack just being initiated");
+            // Update usage limit(s)
+            action.appendUsage(
+                    new UsePermanentDeviceEffect(action, self));
 
             // Draw destiny
             action.appendEffect(

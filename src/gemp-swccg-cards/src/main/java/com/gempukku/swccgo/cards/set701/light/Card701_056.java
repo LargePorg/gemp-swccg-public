@@ -1,7 +1,9 @@
 package com.gempukku.swccgo.cards.set701.light;
 
 import com.gempukku.swccgo.cards.AbstractAlien;
+import com.gempukku.swccgo.cards.AbstractPermanentDevice;
 import com.gempukku.swccgo.cards.GameConditions;
+import com.gempukku.swccgo.cards.effects.UsePermanentDeviceEffect;
 import com.gempukku.swccgo.cards.evaluators.MultiplyEvaluator;
 import com.gempukku.swccgo.cards.evaluators.StackedEvaluator;
 import com.gempukku.swccgo.common.ExpansionSet;
@@ -20,8 +22,8 @@ import com.gempukku.swccgo.logic.GameUtils;
 import com.gempukku.swccgo.logic.TriggerConditions;
 import com.gempukku.swccgo.logic.actions.RequiredGameTextTriggerAction;
 import com.gempukku.swccgo.logic.effects.StackTopCardOfReserveDeckEffect;
-import com.gempukku.swccgo.logic.modifiers.DeployCostToLocationModifier;
 import com.gempukku.swccgo.logic.modifiers.DefenseValueModifier;
+import com.gempukku.swccgo.logic.modifiers.DeployCostToLocationModifier;
 import com.gempukku.swccgo.logic.modifiers.Modifier;
 import com.gempukku.swccgo.logic.timing.EffectResult;
 
@@ -42,7 +44,7 @@ public class Card701_056 extends AbstractAlien {
         setLore("Brave warrior of the Bright Tree Village. Uses the stars to help him on journeys. Married Chief Chirpa's daughter, Kneesaa, shortly after the battle of Endor.");
         setGameText("Deploys only on Endor (-1 to same site as any Ewok). Permanent device is \u2022Wicket's Belt of Honor (if Wicket just initiated a Force drain or won a battle, stack top card of opponent's Reserve Deck here; Wicket is defense value +2 for each card stacked here).");
         addPersona(Persona.WICKET);
-        addIcons(Icon.WARRIOR, Icon.DEVICE, Icon.BEEZER_BOWL_2025);
+        addIcons(Icon.WARRIOR, Icon.PERMANENT_DEVICE, Icon.BEEZER_BOWL_2025);
         setSpecies(Species.EWOK);
     }
 
@@ -60,11 +62,18 @@ public class Card701_056 extends AbstractAlien {
     }
 
     @Override
-    protected List<Modifier> getGameTextWhileActiveInPlayModifiers(SwccgGame game, final PhysicalCard self) {
-        List<Modifier> modifiers = new LinkedList<Modifier>();
-        // Wicket is defense value +2 for each card stacked here
-        modifiers.add(new DefenseValueModifier(self, new MultiplyEvaluator(2, new StackedEvaluator(self))));
-        return modifiers;
+    protected AbstractPermanentDevice getGameTextPermanentDevice() {
+        // Permanent device is •Wicket's Belt of Honor
+        AbstractPermanentDevice permanentDevice = new AbstractPermanentDevice(Persona.WICKETS_BELT_OF_HONOR) {
+            @Override
+            public List<Modifier> getGameTextModifiers(PhysicalCard self) {
+                List<Modifier> modifiers = new LinkedList<Modifier>();
+                // Wicket is defense value +2 for each card stacked here
+                modifiers.add(new DefenseValueModifier(self, new MultiplyEvaluator(2, new StackedEvaluator(self))));
+                return modifiers;
+            }
+        };
+        return permanentDevice;
     }
 
     @Override
@@ -80,6 +89,11 @@ public class Card701_056 extends AbstractAlien {
             final RequiredGameTextTriggerAction action = new RequiredGameTextTriggerAction(self, gameTextSourceCardId);
             action.setText("Stack top card of opponent's Reserve Deck here");
             action.setActionMsg("Stack top card of opponent's Reserve Deck on " + GameUtils.getCardLink(self));
+
+            // Update usage limit(s)
+            action.appendUsage(
+                    new UsePermanentDeviceEffect(action, self));
+
             // Perform result(s)
             action.appendEffect(
                     new StackTopCardOfReserveDeckEffect(action, opponent, self, false));
